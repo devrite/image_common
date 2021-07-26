@@ -81,6 +81,16 @@ protected:
   {
     this->subscribeImplWithOptions(node, base_topic, callback, custom_qos, options);
   }
+
+  void subscribeImpl(
+    PluginApi * api,
+    const std::string & base_topic,
+    Callback && callback,
+    rmw_qos_profile_t custom_qos,
+    rclcpp::SubscriptionOptions options) override
+  {
+    this->subscribeImplWithOptions(api, base_topic, std::move(callback), custom_qos, options);
+  }
 };
 
 }  // namespace image_transport

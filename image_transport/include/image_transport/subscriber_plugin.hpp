@@ -39,6 +39,8 @@
 #include <rclcpp/node.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
+#include "image_transport/plugin_api.hpp"
+
 #include "image_transport/visibility_control.hpp"
 
 namespace image_transport
@@ -73,7 +75,7 @@ public:
     rmw_qos_profile_t custom_qos = rmw_qos_profile_default,
     rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions())
   {
-    return subscribeImpl(node, base_topic, callback, custom_qos, options);
+    subscribeImpl(node, base_topic, callback, custom_qos, options);
   }
 
   /**
@@ -85,9 +87,9 @@ public:
     rmw_qos_profile_t custom_qos = rmw_qos_profile_default,
     rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions())
   {
-    return subscribe(node, base_topic,
-             std::function<void(const sensor_msgs::msg::Image::ConstSharedPtr &)>(fp),
-             custom_qos, options);
+    subscribe(node, base_topic,
+        std::function<void(const sensor_msgs::msg::Image::ConstSharedPtr &)>(fp),
+        custom_qos, options);
   }
 
   /**
@@ -100,8 +102,8 @@ public:
     rmw_qos_profile_t custom_qos = rmw_qos_profile_default,
     rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions())
   {
-    return subscribe(node, base_topic,
-             std::bind(fp, obj, std::placeholders::_1), custom_qos, options);
+    subscribe(node, base_topic,
+        std::bind(fp, obj, std::placeholders::_1), custom_qos, options);
   }
 
   /**
@@ -114,8 +116,26 @@ public:
     std::shared_ptr<T> & obj,
     rmw_qos_profile_t custom_qos = rmw_qos_profile_default)
   {
-    return subscribe(node, base_topic,
-             std::bind(fp, obj, std::placeholders::_1), custom_qos);
+    subscribe(node, base_topic,
+        std::bind(fp, obj, std::placeholders::_1), custom_qos);
+  }
+
+  /**
+   * \brief Subscribe to an image topic, version for arbitrary std::function object
+   * using the PluginApi as interface.
+   * 
+   * This allows to wrap any node like type to be used as interface as long as it
+   * provides node interfaces.
+   * 
+   * The caller must ensure the lifetime of api extends beyond that of the plugin.
+   */
+  void subscribe(
+    PluginApi * api, const std::string & base_topic,
+    Callback && callback,
+    rmw_qos_profile_t custom_qos = rmw_qos_profile_sensor_data,
+    rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions())
+  {
+    subscribeImpl(api, base_topic, std::move(callback), custom_qos, options);
   }
 
   /**
@@ -164,6 +184,27 @@ protected:
       node->get_logger(),
       "SubscriberPlugin::subscribeImpl with five arguments has not been overridden");
     this->subscribeImpl(node, base_topic, callback, custom_qos);
+  }
+
+  /**
+   * \brief Subscribe to an image transport topic. Must be implemented by the subclass.
+   * 
+   * Caller ensures lifetime of api extends beyond lifetime of subclass instance.
+   */
+  virtual void subscribeImpl(
+    PluginApi * api,
+    const std::string & base_topic,
+    Callback && callback,
+    rmw_qos_profile_t custom_qos,
+    rclcpp::SubscriptionOptions options)
+  {
+    (void) api;
+    (void) base_topic;
+    (void) callback;
+    (void) custom_qos;
+    (void) options;
+    // We do not have a node handle, thus we can not fallback to other implementations
+    throw std::runtime_error("SubscriberPlugin::subscribeImpl with PluginApi and five arguments has not been overriden");
   }
 };
 

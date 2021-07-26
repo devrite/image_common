@@ -44,6 +44,7 @@
 
 #include "image_transport/exception.hpp"
 #include "image_transport/loader_fwds.hpp"
+#include "image_transport/plugin_api.hpp"
 #include "image_transport/visibility_control.hpp"
 
 namespace image_transport
@@ -82,6 +83,20 @@ public:
     rmw_qos_profile_t custom_qos = rmw_qos_profile_default,
     rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions());
 
+  template<typename CallbackType, typename NodeType>
+  Subscriber(
+    NodeType && node,
+    const std::string & base_topic,
+    CallbackType && callback,
+    SubLoaderPtr loader,
+    const std::string & transport,
+    rmw_qos_profile_t custom_qos = rmw_qos_profile_sensor_data,
+    rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions())
+  : Subscriber(create_plugin_api(node), base_topic,
+      Callback(std::forward<CallbackType>(callback)), loader, transport, custom_qos, options)
+  {
+    node->doit(); // Just to test failure
+  }
   /**
    * \brief Returns the base image topic.
    *
@@ -119,6 +134,17 @@ public:
   bool operator==(const Subscriber & rhs) const {return impl_ == rhs.impl_;}
 
 private:
+
+  IMAGE_TRANSPORT_PUBLIC
+  Subscriber(
+    PluginApi && api,
+    const std::string & base_topic,
+    Callback && callback,
+    SubLoaderPtr loader,
+    const std::string & transport,
+    rmw_qos_profile_t custom_qos = rmw_qos_profile_sensor_data,
+    rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions());
+
   struct Impl;
   std::shared_ptr<Impl> impl_;
 };

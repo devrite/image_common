@@ -53,6 +53,17 @@ namespace image_transport
 {
 
 /*!
+ * \brief Get the default subscription plugin loader
+ */
+IMAGE_TRANSPORT_PUBLIC
+const SubLoaderPtr& get_sub_plugin_loader();
+
+/*!
+ * \brief Get the default publication plugin loader
+ */
+IMAGE_TRANSPORT_PUBLIC
+const PubLoaderPtr& get_pub_plugin_loader();
+/*!
  * \brief Advertise an image topic, free function version.
  */
 IMAGE_TRANSPORT_PUBLIC
@@ -64,14 +75,41 @@ Publisher create_publisher(
 /**
  * \brief Subscribe to an image topic, free function version.
  */
+template<typename CallbackType, typename NodeType>
+Subscriber create_api_subscription(
+  NodeType && node,
+  const std::string & base_topic,
+  CallbackType && callback,
+  const std::string & transport,
+  rmw_qos_profile_t custom_qos = rmw_qos_profile_default,
+  rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions())
+{
+  // We need a different name otherwise templating will shadow the old api.
+  // In order for this not to happen passed node type and callback must
+  // exactly match the signature.
+
+  // For the constructors this is the case you just use the old api anyway.
+
+  node->doit(); // test failure
+  return Subscriber(
+    std::forward<NodeType>(node), base_topic,
+    std::forward<CallbackType>(callback),
+    get_sub_plugin_loader(), transport, custom_qos, options);
+}
+
+/**
+ * \brief Subscribe to an image topic, free function version.
+ */
 IMAGE_TRANSPORT_PUBLIC
 Subscriber create_subscription(
-  rclcpp::Node* node,
+  rclcpp::Node * node,
   const std::string & base_topic,
   const Subscriber::Callback & callback,
   const std::string & transport,
   rmw_qos_profile_t custom_qos = rmw_qos_profile_default,
   rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions());
+
+
 
 /*!
  * \brief Advertise a camera, free function version.

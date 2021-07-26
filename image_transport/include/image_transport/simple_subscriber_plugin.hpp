@@ -129,6 +129,50 @@ protected:
         });
   }
 
+  void subscribeImpl(
+    rclcpp::Node * node,
+    const std::string & base_topic,
+    const Callback & callback,
+    rmw_qos_profile_t custom_qos,
+    rclcpp::SubscriptionOptions options) override
+  {
+    subscribeImplWithOptions(node, base_topic, callback, custom_qos, options);
+  }
+
+  void subscribeImpl(
+    PluginApi * api,
+    const std::string & base_topic,
+    Callback && callback,
+    rmw_qos_profile_t custom_qos,
+    rclcpp::SubscriptionOptions options) override
+  {
+    subscribeImplWithOptions(api, base_topic, std::move(callback), custom_qos, options);
+  }
+
+  void subscribeImplWithOptions(
+    PluginApi * api,
+    const std::string & base_topic,
+    Callback && callback,
+    rmw_qos_profile_t custom_qos,
+    rclcpp::SubscriptionOptions options)
+  {
+    impl_ = std::make_unique<Impl>();
+    impl_->api_ = api;
+
+    // need to pass as lvalue due to interface bug
+    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics{
+      api->get_node_topics_interface()};
+
+    impl_->sub_ = rclcpp::create_subscription<M>(
+      node_topics,
+      getTopicToSubscribe(base_topic),
+      rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(custom_qos), custom_qos),
+      [this, callback = std::move(callback)](const typename M::ConstSharedPtr msg){
+        internalCallback(msg, callback);
+      },
+      options);
+  }
+
   void subscribeImplWithOptions(
     rclcpp::Node * node,
     const std::string & base_topic,
@@ -151,6 +195,7 @@ protected:
 private:
   struct Impl
   {
+    PluginApi * api_;
     rclcpp::SubscriptionBase::SharedPtr sub_;
   };
 

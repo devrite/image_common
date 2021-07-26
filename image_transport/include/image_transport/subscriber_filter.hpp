@@ -124,6 +124,29 @@ public:
         std::bind(&SubscriberFilter::cb, this, std::placeholders::_1), transport, custom_qos, options);
   }
 
+
+  /**
+   * \brief Subscribe to a topic via plugin api.
+   *
+   * If this Subscriber is already subscribed to a topic, this function will first unsubscribe.
+   *
+   * \param nh The ros::NodeHandle to use to subscribe.
+   * \param base_topic The topic to subscribe to.
+   */
+  template<typename NodeType>
+  void subscribe(
+    NodeType && node,
+    const std::string & base_topic,
+    const std::string & transport,
+    rmw_qos_profile_t custom_qos = rmw_qos_profile_default,
+    rclcpp::SubscriptionOptions options = rclcpp::SubscriptionOptions())
+  {
+    unsubscribe();
+    sub_ =
+      image_transport::create_api_subscription(node, base_topic,
+        std::bind(&SubscriberFilter::cb, this, std::placeholders::_1), transport, custom_qos, options);
+  }
+
   /**
    * \brief Force immediate unsubscription of this subscriber from its topic
    */
